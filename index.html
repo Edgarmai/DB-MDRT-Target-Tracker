@@ -406,6 +406,45 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // Motivational Quotes Database (21 Gold Quotes)
+        const MOTIVATIONAL_QUOTES = [
+            { main: "「衝埋呢單，安心放假飛！無退路先至睇到無限可能！」", sub: "每日堅持邀約與見面，MDRT 就在眼前！" },
+            { main: "「唔好喺最能吃苦嘅年紀，選擇咗安逸！」", sub: "今日多一個 Call，明日多一個 Closing！" },
+            { main: "「你唔拼命，憑咩要成功？MDRT 係搶返嚟嘅！」", sub: "成功冇捷徑，只有持續不斷嘅行動力。" },
+            { main: "「業績係治癒一切焦慮嘅良藥！」", sub: "少啲幻想，多啲行動，即刻攞起電話約客！" },
+            { main: "「今晚提早閉門爆單，年尾一齊去慶功海鮮宴！」", sub: "目標明確，全力以赴，今個星期一定要達標！" },
+            { main: "「客人在哪裡，你的心就在哪裡；努力在哪裡，結果就在哪裡！」", sub: "每一次見面，都是通往成功的階梯。" },
+            { main: "「做別人不願做的事，才能享受別人享受不到的成果！」", sub: "堅持多做一步，榮譽屬於永不放棄的你。" },
+            { main: "「今天拒絕你的人，明天會成為你的見證人！」", sub: "保持信念，強大的心態決定最終的成敗。" },
+            { main: "「當你想放棄的時候，想想當初為什麼要出發！」", sub: "莫忘初心，直奔 MDRT 最高殿堂！" },
+            { main: "「唔好問市場有幾難，問下自己有幾想！」", sub: "渴望有多大，舞台就有多大。" },
+            { main: "「越努力，越幸運；越成交，越自信！」", sub: "好運只會降臨在有準備、有行動的人身上。" },
+            { main: "「你所流過的每一滴汗水，都會化作登頂時的掌聲！」", sub: "衝刺時刻，絕不手軟！" },
+            { main: "「只有淡季的心態，沒有淡季的市場！」", sub: "主動出擊，創造屬於你自己的行情。" },
+            { main: "「每天進步 1%，十週後你就是業績王者！」", sub: "累積的力量，會震撼所有人。" },
+            { main: "「成交不是偶然，而是你堅持不懈的必然結果！」", sub: "信任源於專業，成果源於執著。" },
+            { main: "「別在最好的位置上，做最平庸的自己！」", sub: "拿出一流的狀態，拼出 MDRT 的榮耀。" },
+            { main: "「今天的每一次 Call Out，都在為未來的自由買單！」", sub: "時間花在哪，財富就在哪。" },
+            { main: "「隊友都在衝，你憑什麼停下來？」", sub: "併肩作戰，攜手登頂，一個人都不能少！" },
+            { main: "「把不可能變成可能，這才是我們團隊的靈魂！」", sub: "破局而出，再創高峰。" },
+            { main: "「乾坤未定，你我皆是黑馬！」", sub: "不到最後一刻，決不輕言放棄！" },
+            { main: "「用成果說話，用實力證明自己的價值！」", sub: "今晚就報單，讓全隊為你喝彩！" }
+        ];
+
+        // Random Quote Switcher Function
+        window.refreshQuote = function() {
+            const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+            const selected = MOTIVATIONAL_QUOTES[randomIndex];
+            
+            const qText = document.getElementById('quoteText');
+            const qSub = document.getElementById('quoteSubtext');
+            
+            if (qText && qSub) {
+                qText.innerText = selected.main;
+                qSub.innerText = selected.sub;
+            }
+        };
+
         // Configurations
         const BASE_WEEK_WEIGHTS = [0.10, 0.16, 0.16, 0.15, 0.15, 0.14, 0.10, 0.04, 0.00, 0.00];
         
@@ -487,6 +526,7 @@
             autoDetectCurrentWeek();
             checkNotificationBanner();
             purgeBadge();
+            refreshQuote(); // Auto Random Quote on Launch
 
             // Clear Badge on Page Focus or Active Visibility Change
             window.addEventListener('focus', purgeBadge);
