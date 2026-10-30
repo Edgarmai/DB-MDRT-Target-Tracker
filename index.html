@@ -41,37 +41,9 @@
         .glass-panel { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .glass-card { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
         .active-scale:active { transform: scale(0.95); }
-        
-        /* Toast Animation */
-        @keyframes slideDown {
-            0% { transform: translateY(-100%); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
-        }
-        .animate-toast { animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-white pb-36 select-none bg-slate-950 overflow-x-hidden relative">
-
-    <!-- Live Commission Toast Notification Banner -->
-    <div id="liveToastBanner" class="fixed top-3 left-3 right-3 z-50 hidden pointer-events-none max-w-md mx-auto">
-        <div class="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 text-slate-950 p-3.5 rounded-2xl shadow-2xl border border-amber-300/50 flex items-center gap-3 animate-toast pointer-events-auto">
-            <div class="w-10 h-10 bg-slate-950/20 rounded-full flex items-center justify-center text-xl shrink-0">
-                🎉
-            </div>
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between">
-                    <p class="text-[11px] font-extrabold uppercase tracking-wider text-slate-900/80">團隊最新成交捷報</p>
-                    <span id="toastTime" class="text-[9px] text-slate-900/60 font-medium">即時</span>
-                </div>
-                <p id="toastMessage" class="text-xs font-black truncate text-slate-950 mt-0.5">
-                    載入最新報銷捷報中...
-                </p>
-            </div>
-            <button onclick="closeToast()" class="text-slate-950/60 hover:text-slate-950 p-1">
-                <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-        </div>
-    </div>
 
     <!-- Top iOS Header & Target Display -->
     <header class="sticky top-0 z-30 glass-panel border-b border-slate-800/80 pt-safe px-4 pb-3">
@@ -441,7 +413,6 @@
         let userData = {};
         let computedWeeksData = [];
         let allTeamMembersData = [];
-        let isUserToastClosedManual = false;
         let lastReportedTimestamp = 0;
 
         // Auto Match Current Week
@@ -540,22 +511,6 @@
             syncDataToFirebase();
         };
 
-        // Toast & Notification
-        window.closeToast = function() {
-            isUserToastClosedManual = true;
-            document.getElementById('liveToastBanner').classList.add('hidden');
-        };
-
-        function displayToastMessage(name, totalComm, target) {
-            if (isUserToastClosedManual) return;
-            const banner = document.getElementById('liveToastBanner');
-            const msg = document.getElementById('toastMessage');
-            
-            const pct = Math.min(100, Math.round((totalComm / target) * 100));
-            msg.innerText = `${name} 剛才報單成功！累積 $${totalComm.toLocaleString()} / Target $${target.toLocaleString()} (${pct}%)！🔥`;
-            banner.classList.remove('hidden');
-        }
-
         window.deleteParticipant = async function(targetUserName) {
             if (confirm(`確定要將「${targetUserName}」從團隊排行榜中刪除嗎？`)) {
                 try {
@@ -633,17 +588,15 @@
                     }
                 });
 
-                // Display persistent Toast banner & Send Notification
+                // Send Native Push Notification only (No top banner)
                 if (latestUser) {
-                    const target = latestUser.totalTargetGap || 120000;
-                    displayToastMessage(latestUser.userName, latestUser.totalComm, target);
-
-                    // Check if new report timestamp triggered push
                     if (latestUser.updatedAt && latestUser.updatedAt > lastReportedTimestamp && latestUser.userName !== userName) {
                         lastReportedTimestamp = latestUser.updatedAt;
                         
-                        // 1. Send Push Notification
-                        sendWebPush("🎉 團隊成交捷報！", `${latestUser.userName} 剛才成功報銷！累積 $${latestUser.totalComm.toLocaleString()}！🔥`);
+                        // 1. Send System Push Notification
+                        const target = latestUser.totalTargetGap || 120000;
+                        const pct = Math.min(100, Math.round((latestUser.totalComm / target) * 100));
+                        sendWebPush("🎉 團隊成交捷報！", `${latestUser.userName} 剛才成功報銷！累積 $${latestUser.totalComm.toLocaleString()} / Target $${target.toLocaleString()} (${pct}%)！🔥`);
                         
                         // 2. Set App Badge
                         if (navigator.setAppBadge) {
