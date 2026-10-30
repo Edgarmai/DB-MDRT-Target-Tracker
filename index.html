@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MDRT 團隊衝刺與追蹤 App</title>
     
-    <!-- PWA Settings for iOS & Web -->
+    <!-- PWA Settings for iOS & Web (Fixed status bar style) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="MDRT Target">
     <meta name="theme-color" content="#0f172a">
     
@@ -45,8 +45,8 @@
 </head>
 <body class="min-h-screen flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-white pb-36 select-none bg-slate-950 overflow-x-hidden relative">
 
-    <!-- Top iOS Header & Target Display (Added Safe Area Padding) -->
-    <header class="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-4 pb-3 pt-[calc(env(safe-area-inset-top,20px)+8px)]">
+    <!-- Top iOS Header & Target Display (Fixed Safe Area with Top Margin) -->
+    <header class="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-4 pb-3 pt-10">
         <!-- User Info Bar & Tab Switcher -->
         <div class="flex justify-between items-center pb-2 text-xs">
             <button onclick="openUserNameModal()" class="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 px-2.5 py-1 rounded-full active:scale-95 transition-transform">
