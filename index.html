@@ -45,10 +45,10 @@
 </head>
 <body class="min-h-screen flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-white pb-36 select-none bg-slate-950 overflow-x-hidden relative">
 
-    <!-- Top iOS Header & Target Display -->
-    <header class="sticky top-0 z-30 glass-panel border-b border-slate-800/80 pt-safe px-4 pb-3">
+    <!-- Top iOS Header & Target Display (Added Safe Area Padding) -->
+    <header class="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-4 pb-3 pt-[calc(env(safe-area-inset-top,20px)+8px)]">
         <!-- User Info Bar & Tab Switcher -->
-        <div class="flex justify-between items-center pt-2 pb-2 text-xs">
+        <div class="flex justify-between items-center pb-2 text-xs">
             <button onclick="openUserNameModal()" class="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 px-2.5 py-1 rounded-full active:scale-95 transition-transform">
                 <i data-lucide="user" class="w-3.5 h-3.5 text-amber-400"></i>
                 <span id="currentUserNameDisplay" class="font-bold text-amber-300">身份：未設定</span>
@@ -277,7 +277,7 @@
     </main>
 
     <!-- Floating Action Quick Input Bar -->
-    <div id="bottomQuickBar" class="fixed bottom-0 left-0 right-0 z-40 p-3 glass-panel border-t border-slate-800/90 pb-safe">
+    <div id="bottomQuickBar" class="fixed bottom-0 left-0 right-0 z-40 p-3 glass-panel border-t border-slate-800/90 pb-[calc(env(safe-area-inset-bottom,10px)+8px)]">
         <div class="max-w-md mx-auto grid grid-cols-3 gap-2">
             <!-- Outreach Controls -->
             <div class="bg-slate-800/90 border border-blue-500/30 rounded-xl p-1.5 flex flex-col justify-between shadow-md">
@@ -461,7 +461,6 @@
             autoDetectCurrentWeek();
             checkNotificationBanner();
 
-            // Clear App Badge when opened
             if (navigator.clearAppBadge) {
                 navigator.clearAppBadge();
             }
@@ -588,24 +587,20 @@
                     }
                 });
 
-                // Send Native Push Notification only (No top banner)
                 if (latestUser) {
                     if (latestUser.updatedAt && latestUser.updatedAt > lastReportedTimestamp && latestUser.userName !== userName) {
                         lastReportedTimestamp = latestUser.updatedAt;
                         
-                        // 1. Send System Push Notification
                         const target = latestUser.totalTargetGap || 120000;
                         const pct = Math.min(100, Math.round((latestUser.totalComm / target) * 100));
                         sendWebPush("🎉 團隊成交捷報！", `${latestUser.userName} 剛才成功報銷！累積 $${latestUser.totalComm.toLocaleString()} / Target $${target.toLocaleString()} (${pct}%)！🔥`);
                         
-                        // 2. Set App Badge
                         if (navigator.setAppBadge) {
                             navigator.setAppBadge(1);
                         }
                     }
                 }
 
-                // Sort by achievement percentage descending
                 allTeamMembersData.sort((a, b) => {
                     const pctA = ((a.totalComm || 0) / (a.totalTargetGap || 120000));
                     const pctB = ((b.totalComm || 0) / (b.totalTargetGap || 120000));
