@@ -376,6 +376,22 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // Register Service Worker for PWA Push & Badge Control
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').then(reg => {
+                console.log('Service Worker Registered Successfully:', reg);
+            }).catch(err => {
+                console.error('Service Worker Registration Failed:', err);
+            });
+        }
+
+        // Auto Clear Badge Function
+        function purgeBadge() {
+            if ('clearAppBadge' in navigator) {
+                navigator.clearAppBadge().catch(() => {});
+            }
+        }
+
         // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyAebvT_dBiNqpqV3MD1XY-Efx5E-MXpTS8",
@@ -434,6 +450,7 @@
                 Notification.requestPermission().then(permission => {
                     if (permission === "granted") {
                         document.getElementById('pushPromptBanner').classList.add('hidden');
+                        purgeBadge();
                     }
                 });
             }
@@ -445,20 +462,22 @@
             }
         }
 
-        // Send Native Web Push Notification (Without Badge)
+        // Send Native Web Push Notification (Without badge parameter to avoid permanent 1)
         function sendWebPush(title, body) {
             if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(title, {
-                    body: body,
-                    icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
-                });
-            }
-        }
-
-        // Clear Badges function
-        function clearAppBadge() {
-            if (navigator.clearAppBadge) {
-                navigator.clearAppBadge().catch(() => {});
+                if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.ready.then(registration => {
+                        registration.showNotification(title, {
+                            body: body,
+                            icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
+                        });
+                    });
+                } else {
+                    new Notification(title, {
+                        body: body,
+                        icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
+                    });
+                }
             }
         }
 
@@ -467,9 +486,13 @@
             lucide.createIcons();
             autoDetectCurrentWeek();
             checkNotificationBanner();
+            purgeBadge();
 
-            // Clear Badge immediately on launch
-            clearAppBadge();
+            // Clear Badge on Page Focus or Active Visibility Change
+            window.addEventListener('focus', purgeBadge);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') purgeBadge();
+            });
 
             if (!userName) {
                 openUserNameModal();
