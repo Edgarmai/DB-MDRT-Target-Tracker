@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MDRT 團隊衝刺與追蹤 App</title>
     
-    <!-- PWA Settings for iOS & Web (Fixed status bar style) -->
+    <!-- PWA Settings for iOS & Web -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="MDRT Target">
@@ -45,7 +45,7 @@
 </head>
 <body class="min-h-screen flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-white pb-36 select-none bg-slate-950 overflow-x-hidden relative">
 
-    <!-- Top iOS Header & Target Display (Fixed Safe Area with Top Margin) -->
+    <!-- Top iOS Header & Target Display -->
     <header class="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-4 pb-3 pt-10">
         <!-- User Info Bar & Tab Switcher -->
         <div class="flex justify-between items-center pb-2 text-xs">
@@ -445,7 +445,7 @@
             }
         }
 
-        // Send Native Web Push Notification
+        // Send Native Web Push Notification (Without Badge)
         function sendWebPush(title, body) {
             if ("Notification" in window && Notification.permission === "granted") {
                 new Notification(title, {
@@ -455,15 +455,21 @@
             }
         }
 
+        // Clear Badges function
+        function clearAppBadge() {
+            if (navigator.clearAppBadge) {
+                navigator.clearAppBadge().catch(() => {});
+            }
+        }
+
         // App Initialization
         window.onload = function() {
             lucide.createIcons();
             autoDetectCurrentWeek();
             checkNotificationBanner();
 
-            if (navigator.clearAppBadge) {
-                navigator.clearAppBadge();
-            }
+            // Clear Badge immediately on launch
+            clearAppBadge();
 
             if (!userName) {
                 openUserNameModal();
@@ -594,10 +600,6 @@
                         const target = latestUser.totalTargetGap || 120000;
                         const pct = Math.min(100, Math.round((latestUser.totalComm / target) * 100));
                         sendWebPush("🎉 團隊成交捷報！", `${latestUser.userName} 剛才成功報銷！累積 $${latestUser.totalComm.toLocaleString()} / Target $${target.toLocaleString()} (${pct}%)！🔥`);
-                        
-                        if (navigator.setAppBadge) {
-                            navigator.setAppBadge(1);
-                        }
                     }
                 }
 
