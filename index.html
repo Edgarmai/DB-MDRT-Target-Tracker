@@ -468,7 +468,10 @@
         let userData = {};
         let computedWeeksData = [];
         let allTeamMembersData = [];
-        let lastReportedTimestamp = 0;
+        
+        // Persistent Last Reported Timestamp (Fix duplicate notifications)
+        let lastReportedTimestamp = parseInt(localStorage.getItem('mdrt_last_reported_ts') || '0');
+        let isInitialLoad = true;
 
         // Auto Match Current Week
         function autoDetectCurrentWeek() {
@@ -501,7 +504,7 @@
             }
         }
 
-        // Send Native Web Push Notification (Without badge parameter to avoid permanent 1)
+        // Send Native Web Push Notification
         function sendWebPush(title, body) {
             if ("Notification" in window && Notification.permission === "granted") {
                 if (navigator.serviceWorker && navigator.serviceWorker.controller) {
@@ -656,15 +659,25 @@
                     }
                 });
 
-                if (latestUser) {
-                    if (latestUser.updatedAt && latestUser.updatedAt > lastReportedTimestamp && latestUser.userName !== userName) {
+                // Check for New Updates (Only trigger push if not initial load and timestamp is strictly newer)
+                if (latestUser && latestUser.updatedAt) {
+                    if (!isInitialLoad && latestUser.updatedAt > lastReportedTimestamp && latestUser.userName !== userName) {
                         lastReportedTimestamp = latestUser.updatedAt;
+                        localStorage.setItem('mdrt_last_reported_ts', lastReportedTimestamp.toString());
                         
                         const target = latestUser.totalTargetGap || 120000;
                         const pct = Math.min(100, Math.round((latestUser.totalComm / target) * 100));
                         sendWebPush("🎉 團隊成交捷報！", `${latestUser.userName} 剛才成功報銷！累積 $${latestUser.totalComm.toLocaleString()} / Target $${target.toLocaleString()} (${pct}%)！🔥`);
+                    } else if (isInitialLoad) {
+                        // Record current highest timestamp on load without triggering push
+                        if (latestUser.updatedAt > lastReportedTimestamp) {
+                            lastReportedTimestamp = latestUser.updatedAt;
+                            localStorage.setItem('mdrt_last_reported_ts', lastReportedTimestamp.toString());
+                        }
                     }
                 }
+
+                isInitialLoad = false;
 
                 allTeamMembersData.sort((a, b) => {
                     const pctA = ((a.totalComm || 0) / (a.totalTargetGap || 120000));
