@@ -55,7 +55,7 @@
                 <i data-lucide="edit-2" class="w-3 h-3 text-slate-400 ml-0.5"></i>
             </button>
             
-            <!-- View Switcher Tabs (3 Tabs Now) -->
+            <!-- View Switcher Tabs -->
             <div class="flex bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[11px]">
                 <button id="tabMyProgress" onclick="switchView('my')" class="px-2 py-1 rounded-md font-bold bg-amber-500 text-slate-950 transition-all">
                     我的進度
@@ -114,6 +114,17 @@
 
     <!-- Main Content Container -->
     <main class="flex-1 px-4 pt-3 space-y-4 max-w-md mx-auto w-full pb-8">
+
+        <!-- New Version Banner Prompt -->
+        <div id="updateAppBanner" class="hidden glass-card rounded-xl p-3 border border-emerald-500/40 bg-emerald-500/10">
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="arrow-up-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                    <p class="text-xs text-emerald-200 font-semibold">發現新版本！點擊即可即時更新 App。</p>
+                </div>
+                <button onclick="forceReloadApp()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-[10px] px-3 py-1 rounded-lg shrink-0 active:scale-95">即刻更新</button>
+            </div>
+        </div>
 
         <!-- VIEW 1: MY PROGRESS VIEW -->
         <div id="myProgressView" class="space-y-4">
@@ -381,9 +392,33 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc, updateDoc, query, orderBy, limit, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Register Service Worker for PWA
+        // Auto Version Check & Force Reload Helper
+        window.forceReloadApp = function() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    for (let registration of registrations) {
+                        registration.update();
+                    }
+                    window.location.reload(true);
+                });
+            } else {
+                window.location.reload(true);
+            }
+        };
+
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(() => {});
+            navigator.serviceWorker.register('/sw.js').then(reg => {
+                reg.onupdatefound = () => {
+                    const installingWorker = reg.installing;
+                    installingWorker.onstatechange = () => {
+                        if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // Show Update Banner
+                            const banner = document.getElementById('updateAppBanner');
+                            if (banner) banner.classList.remove('hidden');
+                        }
+                    };
+                };
+            }).catch(() => {});
         }
 
         // Firebase Configuration
@@ -396,7 +431,6 @@
             appId: "1:359985301115:web:f72982e274388a6c4f84de"
         };
 
-        // Initialize Firebase & Firestore
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
@@ -489,9 +523,7 @@
             document.getElementById('currentUserNameDisplay').innerText = `身份：${userName}`;
 
             if (oldName && oldName !== userName) {
-                try {
-                    await deleteDoc(doc(db, "team_members", oldName));
-                } catch(e) {}
+                try { await deleteDoc(doc(db, "team_members", oldName)); } catch(e) {}
             }
 
             closeUserNameModal();
@@ -517,13 +549,12 @@
             }));
         }
 
-        // Add Dynamic Activity Feed Item to Firestore
         async function createActivityFeed(type, detailText) {
             if (!userName) return;
             try {
                 await addDoc(collection(db, "team_feeds"), {
                     userName: userName,
-                    type: type, // 'comm', 'outreach', 'appts'
+                    type: type,
                     detail: detailText,
                     likes: [],
                     comments: [],
@@ -534,7 +565,6 @@
             }
         }
 
-        // Firebase Sync Engine
         async function syncDataToFirebase(feedType = null, feedText = null) {
             if (!userName) return;
             let totalComm = 0;
@@ -589,7 +619,6 @@
             });
         }
 
-        // Realtime Activity Feed Listener (Wall)
         function setupFeedListener() {
             const q = query(collection(db, "team_feeds"), orderBy("createdAt", "desc"), limit(30));
             onSnapshot(q, (snapshot) => {
@@ -601,7 +630,6 @@
             });
         }
 
-        // Render Dynamic Feed (Wall)
         function renderActivityFeed() {
             const container = document.getElementById('feedListContainer');
             if (!container) return;
@@ -616,7 +644,6 @@
                 const likesCount = feed.likes ? feed.likes.length : 0;
                 const comments = feed.comments || [];
                 
-                // Formatted Time
                 const dateObj = new Date(feed.createdAt);
                 const timeStr = `${(dateObj.getMonth()+1)}/${dateObj.getDate()} ${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
 
@@ -651,7 +678,6 @@
                             ${feed.detail}
                         </p>
 
-                        <!-- Actions: Like & Comment Toggle -->
                         <div class="flex items-center gap-4 pt-1 border-t border-slate-800/80 text-xs text-slate-400">
                             <button onclick="toggleLike('${feed.id}')" class="flex items-center gap-1 hover:text-red-400 transition-colors ${isLiked ? 'text-red-400 font-bold' : ''}">
                                 <i data-lucide="heart" class="w-4 h-4 ${isLiked ? 'fill-red-400 text-red-400' : ''}"></i>
@@ -663,7 +689,6 @@
                             </button>
                         </div>
 
-                        <!-- Comments Display Area -->
                         <div id="commentBox-${feed.id}" class="space-y-2 pt-1">
                             ${comments.length > 0 ? `
                                 <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 space-y-1.5 text-[11px]">
@@ -688,7 +713,6 @@
             lucide.createIcons();
         }
 
-        // Toggle Like Engine
         window.toggleLike = async function(feedId) {
             if (!userName) return;
             const feed = feedsList.find(f => f.id === feedId);
@@ -703,12 +727,9 @@
                 } else {
                     await updateDoc(feedRef, { likes: arrayUnion(userName) });
                 }
-            } catch(e) {
-                console.error("Like error:", e);
-            }
+            } catch(e) {}
         };
 
-        // Submit Comment Engine
         window.submitComment = async function(feedId) {
             if (!userName) return;
             const input = document.getElementById(`inputComment-${feedId}`);
@@ -727,9 +748,7 @@
                     })
                 });
                 input.value = '';
-            } catch(e) {
-                console.error("Comment error:", e);
-            }
+            } catch(e) {}
         };
 
         window.toggleCommentBox = function(feedId) {
@@ -814,7 +833,6 @@
             const feedView = document.getElementById('teamFeedView');
             const teamView = document.getElementById('teamProgressView');
 
-            // Reset Styles
             myBtn.className = "px-2 py-1 rounded-md font-bold text-slate-400 hover:text-white transition-all";
             feedBtn.className = "px-2 py-1 rounded-md font-bold text-slate-400 hover:text-white transition-all flex items-center gap-1";
             teamBtn.className = "px-2 py-1 rounded-md font-bold text-slate-400 hover:text-white transition-all flex items-center gap-1";
