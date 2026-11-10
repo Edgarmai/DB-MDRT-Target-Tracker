@@ -392,7 +392,38 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc, updateDoc, query, orderBy, limit, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Auto Version Check & Force Reload Helper
+        // Green API Configurations
+        const GREEN_API_CONFIG = {
+            idInstance: "710722793709",
+            apiTokenInstance: "ff681e44271c4df0bbb97d5a982ba0961e50d19d7fb64f9685",
+            chatId: "120363433048505720@g.us"
+        };
+
+        // Send WhatsApp Notification (Exact Requested Format)
+        async function sendWhatsAppGroupNotification(agentName, amountAdded, newWeekComm) {
+            const message = `捕獲最新報單！🎉\n` +
+                            `名字：${agentName}\n` +
+                            `剛才成交佣金：$${amountAdded.toLocaleString()} (當週累積: $${newWeekComm.toLocaleString()})\n` +
+                            `大家快點去 App 動態牆給他點讚打氣！🔥`;
+
+            const url = `https://api.green-api.com/waInstance${GREEN_API_CONFIG.idInstance}/sendMessage/${GREEN_API_CONFIG.apiTokenInstance}`;
+
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chatId: GREEN_API_CONFIG.chatId,
+                        message: message
+                    })
+                });
+                console.log('WhatsApp Group Notification Sent Successfully!');
+            } catch (error) {
+                console.error('Failed to send WhatsApp Notification:', error);
+            }
+        }
+
+        // Auto Version Check & Reload Helper
         window.forceReloadApp = function() {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -407,12 +438,11 @@
         };
 
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=20261105').then(reg => {
+            navigator.serviceWorker.register('/sw.js?v=20261109').then(reg => {
                 reg.onupdatefound = () => {
                     const installingWorker = reg.installing;
                     installingWorker.onstatechange = () => {
                         if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            // Show Update Banner
                             const banner = document.getElementById('updateAppBanner');
                             if (banner) banner.classList.remove('hidden');
                         }
@@ -935,6 +965,7 @@
             document.getElementById('totalCommPct').innerText = `Target $${Math.round(totalTargetGap/1000)}K (${totalPct}%)`;
         }
 
+        // Quick Add for Outreach & Appointments (Wall Feed ONLY, NO WhatsApp)
         window.quickAdd = function(type, amount) {
             if (!userData[currentSelectedWeek]) userData[currentSelectedWeek] = { outreach: 0, appts: 0, comm: 0 };
             const currentVal = userData[currentSelectedWeek][type] || 0;
@@ -989,15 +1020,26 @@
             document.getElementById('commModal').classList.remove('hidden');
         };
         window.closeCommissionModal = function() { document.getElementById('commModal').classList.add('hidden'); };
+
+        // Save Commission Entry (Triggers WhatsApp Group Push with exact requested format)
         window.saveCommissionEntry = function(isAccumulate) {
             const inputVal = parseInt(document.getElementById('modalCommInput').value) || 0;
+            if (inputVal <= 0) return;
+
             if (!userData[currentSelectedWeek]) userData[currentSelectedWeek] = { outreach: 0, appts: 0, comm: 0 };
             const oldComm = userData[currentSelectedWeek].comm || 0;
-            const newComm = isAccumulate ? oldComm + inputVal : inputVal;
-            userData[currentSelectedWeek].comm = newComm;
+            const newWeekComm = isAccumulate ? oldComm + inputVal : inputVal;
+            userData[currentSelectedWeek].comm = newWeekComm;
 
-            const feedText = `成功成交報單！在 ${computedWeeksData[currentSelectedWeek-1].week} 錄入佣金 $${inputVal.toLocaleString()}！(當週累積: $${newComm.toLocaleString()}) 🎯🎉`;
+            const weekObj = computedWeeksData[currentSelectedWeek-1];
+            const feedText = `成功成交報單！在 ${weekObj.week} 錄入佣金 $${inputVal.toLocaleString()}！(當週累積: $${newWeekComm.toLocaleString()}) 🎯🎉`;
+            
+            // Sync to Firebase
             syncDataToFirebase('comm', feedText);
+
+            // Trigger WhatsApp Group Push with exact custom text format
+            sendWhatsAppGroupNotification(userName, inputVal, newWeekComm);
+
             closeCommissionModal();
         };
     </script>
