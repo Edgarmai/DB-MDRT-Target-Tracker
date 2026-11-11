@@ -399,7 +399,7 @@
             chatId: "120363433048505720@g.us"
         };
 
-        // Send WhatsApp Notification (Exact Requested Format)
+        // Enhanced WhatsApp Group Notification (With Debugging Alerts & Error Handlers)
         async function sendWhatsAppGroupNotification(agentName, amountAdded, newWeekComm) {
             const message = `捕獲最新報單！🎉\n` +
                             `名字：${agentName}\n` +
@@ -409,7 +409,7 @@
             const url = `https://api.green-api.com/waInstance${GREEN_API_CONFIG.idInstance}/sendMessage/${GREEN_API_CONFIG.apiTokenInstance}`;
 
             try {
-                await fetch(url, {
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -417,13 +417,23 @@
                         message: message
                     })
                 });
-                console.log('WhatsApp Group Notification Sent Successfully!');
+                
+                const data = await response.json();
+                console.log('WhatsApp API Response:', data);
+
+                if (data && data.idMessage) {
+                    // Success Signal
+                    console.log('WhatsApp Notice Sent Successfully!');
+                } else {
+                    alert('WhatsApp 發送回應異常: ' + JSON.stringify(data));
+                }
             } catch (error) {
                 console.error('Failed to send WhatsApp Notification:', error);
+                alert('WhatsApp 發送失敗 (請檢查網絡或跨域): ' + error.message);
             }
         }
 
-        // Auto Version Check & Reload Helper
+        // Auto Version Check & Reload Helper (Version bumped to v=20261111)
         window.forceReloadApp = function() {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -438,7 +448,7 @@
         };
 
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=20261109').then(reg => {
+            navigator.serviceWorker.register('/sw.js?v=20261111').then(reg => {
                 reg.onupdatefound = () => {
                     const installingWorker = reg.installing;
                     installingWorker.onstatechange = () => {
@@ -1021,7 +1031,7 @@
         };
         window.closeCommissionModal = function() { document.getElementById('commModal').classList.add('hidden'); };
 
-        // Save Commission Entry (Triggers WhatsApp Group Push with exact requested format)
+        // Save Commission Entry (Triggers WhatsApp Group Push with exact requested format & Debugging)
         window.saveCommissionEntry = function(isAccumulate) {
             const inputVal = parseInt(document.getElementById('modalCommInput').value) || 0;
             if (inputVal <= 0) return;
